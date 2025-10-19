@@ -1,6 +1,20 @@
 import { db_read } from '@/lib/db';
+import rate_limit from '@/lib/rate_limit';
+
+const LIMIT = parseInt(process.env.RL_STAMPS_COUNTRY_LIMIT || process.env.RL_DEFAULT_LIMIT || '60', 10);
+const WINDOW = parseInt(process.env.RL_STAMPS_COUNTRY_WINDOW || process.env.RL_DEFAULT_WINDOW || '60', 10);
+
+const apply_rate_limit = rate_limit({ limit: LIMIT, window: WINDOW });
 
 export default async function handler(req, res) {
+  let finished = false;
+  await new Promise(resolve => {
+    apply_rate_limit(req, res, () => {
+      finished = true;
+      resolve();
+    });
+  });
+  if (!finished) return;
   const { slug, year } = req.query;
   const sql = `
     SELECT
