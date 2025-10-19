@@ -1,0 +1,16 @@
+:global(.ant-menu-horizontal > .ant-menu-item),
+:global(.ant-menu-horizontal > .ant-menu-submenu),
+:global(.ant-menu-horizontal > .ant-menu-overflow-item) {
+	height: 36px !important;
+	line-height: 36px !important;
+	min-height: 36px !important;
+	padding-top: 0 !important;
+	padding-bottom: 0 !important;
+}
+.menu_bar {
+	border-bottom: none;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	background: var(--orange-0);
+}

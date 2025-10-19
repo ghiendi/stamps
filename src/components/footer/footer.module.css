@@ -1,0 +1,24 @@
+.main {
+  padding: 8px;
+  background-color: var(--gray-1);
+}
+
+.info {
+  display: flex;
+}
+
+.left {
+  flex: 1;
+}
+
+.right {
+  display: flex;
+  gap: 8px;
+}
+
+.disclaimer {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--gray-5);
+  font-size: 13px;
+}

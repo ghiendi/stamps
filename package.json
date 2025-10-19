@@ -3,19 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 8090 --hostname 192.168.199.5 --experimental-https --experimental-https-key /root/stamps.key --experimental-https-cert /root/stamps.crt",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "antd": "^5.27.5",
+    "dayjs": "^1.11.18",
+    "mariadb": "^3.4.5",
+    "next": "15.5.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "next": "15.5.6"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "eslint": "^9",
-    "eslint-config-next": "15.5.6",
-    "@eslint/eslintrc": "^3"
+    "eslint-config-next": "15.5.6"
   }
 }

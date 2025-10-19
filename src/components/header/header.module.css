@@ -1,0 +1,8 @@
+.main {
+  background-color: var(--gray-1);
+  padding: 8px;
+}
+
+.logo {
+  width: 180px;
+}
