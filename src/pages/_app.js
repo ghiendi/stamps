@@ -1,3 +1,4 @@
+import '@ant-design/v5-patch-for-react-19';
 import "@/styles/globals.css";
 import "antd/dist/reset.css";
 import { Layout, ConfigProvider } from "antd";
