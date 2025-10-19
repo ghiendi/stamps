@@ -1,0 +1,25 @@
+.thumb {
+  background-color: var(--stamp-bg-default);
+  padding: 3px;
+  max-width: 200px;
+  max-height: 200px;
+  cursor: pointer;
+}
+
+.thumb:hover {
+  background-color: var(--stamp-bg-hover-default);
+}
+
+.item {
+  padding: 2px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.actions {
+  width: 100%;
+  text-align: right;
+}

@@ -1,52 +1,8 @@
 .grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.item {
-  background: #fff;
-  border: 1px solid var(--gray-3);
-  border-radius: 6px;
-  padding: 8px;
-  text-align: center;
-  transition: box-shadow 0.2s;
+  margin-top: 4px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.thumb_wrapper {
-  background: var(--gray-1);
-  border-radius: 4px;
-  padding: 2px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 8px;
-  max-width: 100%;
-  max-height: 120px;
-}
-
-.thumb {
-  max-width: 100%;
-  max-height: 116px;
-  object-fit: contain;
-  border-radius: 2px;
-  display: block;
-}
-
-.caption {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--gray-8);
-  margin-bottom: 4px;
-  text-align: left;
-}
-
-.date {
-  font-size: 0.9rem;
-  color: var(--gray-6);
-  text-align: left;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-end;
 }

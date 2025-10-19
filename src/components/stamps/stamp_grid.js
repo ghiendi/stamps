@@ -1,27 +1,89 @@
 import React from 'react';
-import dayjs from 'dayjs';
 import styles from './stamp_grid.module.css';
+import StampItem from './stamp_item';
 
-export default function StampGrid({ stamps, country_slug, year }) {
+export default function StampGrid({ stamps, groupBy = 'issue' }) {
   if (!stamps || stamps.length === 0) return <div>No stamps found.</div>;
+
+  // Helper: group stamps by issue
+  const groupByIssue = (stamps) => {
+    const groups = {};
+    stamps.forEach(stamp => {
+      const issueId = stamp.issue_id || 'unknown';
+      if (!groups[issueId]) {
+        groups[issueId] = {
+          issue_id: issueId,
+          issue_name: stamp.issue_name_base || 'Unknown Issue',
+          stamps: [],
+        };
+      }
+      groups[issueId].stamps.push(stamp);
+    });
+    return Object.values(groups);
+  };
+
+  // Helper: group stamps by series
+  const groupBySeries = (stamps) => {
+    const groups = {};
+    stamps.forEach(stamp => {
+      const seriesId = stamp.series_id || 'unknown';
+      if (!groups[seriesId]) {
+        groups[seriesId] = {
+          series_id: seriesId,
+          series_name: stamp.series_name_base || 'Unknown Series',
+          stamps: [],
+        };
+      }
+      groups[seriesId].stamps.push(stamp);
+    });
+    return Object.values(groups);
+  };
+
+  if (groupBy === 'issue') {
+    const issueGroups = groupByIssue(stamps);
+    return (
+      <div>
+        {issueGroups.map(group => (
+          <div key={group.issue_id} style={{ marginBottom: 24 }}>
+            {group.issue_name !== 'Unknown Issue' && (
+              <h3 style={{ margin: '8px 0' }}>Issue: {group.issue_name}</h3>
+            )}
+            <div className={styles.grid}>
+              {group.stamps.map(stamp => (
+                <StampItem key={stamp.id} stamp={stamp} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (groupBy === 'series') {
+    const seriesGroups = groupBySeries(stamps);
+    return (
+      <div>
+        {seriesGroups.map(group => (
+          <div key={group.series_id} style={{ marginBottom: 24 }}>
+            {group.series_name !== 'Unknown Series' && (
+              <h3 style={{ margin: '8px 0' }}>Series: {group.series_name}</h3>
+            )}
+            <div className={styles.grid}>
+              {group.stamps.map(stamp => (
+                <StampItem key={stamp.id} stamp={stamp} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Flat list (All)
   return (
     <div className={styles.grid}>
       {stamps.map(stamp => (
-        <div key={stamp.id} className={styles.item}>
-          <div className={styles.thumb_wrapper}>
-            <img
-              src={
-                stamp.image_url
-                  ? `${process.env.NEXT_PUBLIC_ASSETS_URL}/stamp/${country_slug}/${year}/250/${stamp.image_url}`
-                  : '/images/no-image.png'
-              }
-              alt={stamp.caption_base}
-              className={styles.thumb}
-            />
-          </div>
-          <div className={styles.caption}>{stamp.caption_base}</div>
-          <div className={styles.date}>{stamp.release_date ? dayjs(stamp.release_date).format('YYYY-MM-DD') : ''}</div>
-        </div>
+        <StampItem key={stamp.id} stamp={stamp} />
       ))}
     </div>
   );
