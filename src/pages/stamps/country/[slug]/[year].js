@@ -43,7 +43,7 @@ export default function StampsByCountryYear({ slug, year, stamps }) {
           options={[
             { label: 'Group by Issue', value: 'issue' },
             { label: 'Group by Series', value: 'series' },
-            { label: 'All (Flat)', value: 'all' },
+            { label: 'All', value: 'all' },
           ]}
           value={groupBy}
           onChange={handleGroupByChange}

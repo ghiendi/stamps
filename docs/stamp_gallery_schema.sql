@@ -11,7 +11,7 @@
  Target Server Version : 120101 (12.1.1-MariaDB-log)
  File Encoding         : 65001
 
- Date: 19/10/2025 10:45:06
+ Date: 19/10/2025 19:57:41
 */
 
 SET NAMES utf8mb4;
@@ -443,7 +443,7 @@ CREATE TABLE `series`  (
   `start_year` smallint(5) UNSIGNED NULL DEFAULT NULL COMMENT 'Năm bắt đầu series (ước lượng được)',
   `end_year` smallint(5) UNSIGNED NULL DEFAULT NULL COMMENT 'Năm kết thúc (nếu đã kết thúc)',
   `is_special` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = series ĐẶC BIỆT (Europa, Olympic, Christmas…); 0 = series thường của 1 authority',
-  `special_type` enum('joint_issue','global_event','commemorative','regional','annual','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Phân loại series đặc biệt (Europa=joint_issue, Olympic=global_event, Christmas=annual, ...)',
+  `special_type` enum('joint_issue','global_event','commemorative','regional','annual','single_series','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Phân loại series đặc biệt (Europa=joint_issue, Olympic=global_event, Christmas=annual, ...)',
   `notes_base` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Ghi chú base (không i18n)',
   `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Thời điểm tạo',
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP COMMENT 'Thời điểm cập nhật',
