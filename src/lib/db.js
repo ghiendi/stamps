@@ -24,7 +24,7 @@ function get_config(prefix) {
   };
 }
 
-function get_pool(prefix) {
+export function get_pool(prefix) {
   const key = `__mariadb_pool_${prefix}`;
   if (!globalThis[key]) {
     globalThis[key] = mariadb.createPool(get_config(prefix));
@@ -50,4 +50,25 @@ export function db_read(sql, params = []) {
 
 export function db_write(sql, params = []) {
   return db_query(sql, params, { wire: true });
+}
+
+export async function db_transaction(queries) {
+  const pool = get_pool('DBW');
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    let results = [];
+    for (const { sql, params } of queries) {
+      const res = await conn.query(sql, params);
+      results.push(res);
+    }
+    await conn.commit();
+    return results;
+  } catch (err) {
+    if (conn) await conn.rollback();
+    throw err;
+  } finally {
+    if (conn) conn.release();
+  }
 }

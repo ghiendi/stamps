@@ -1,13 +1,15 @@
-import { db_write, db_read } from '@/lib/db';
+import { db_write, db_read, db_transaction, get_pool } from '@/lib/db';
 import rate_limit from '@/lib/rate_limit';
 import { send_email } from '@/lib/send_email';
 import { get_activation_email } from '@/email/activation_email';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const LIMIT = parseInt(process.env.RL_REGISTER_LIMIT || '5', 10);
 const WINDOW = parseInt(process.env.RL_REGISTER_WINDOW || '900', 10);
 const TOKEN_TTL_HOURS = parseInt(process.env.TOKEN_ACTIVATION_TTL_HOURS || '24', 10);
 const APP_BASE_URL = process.env.APP_BASE_URL;
+const BCRYPT_SALT = process.env.BCRYPT_SALT || '$2a$10$CwTycUXWue0Thq9StjUM0u'; // default salt, override in .env.development
 
 const apply_rate_limit = rate_limit({ limit: LIMIT, window: WINDOW });
 
@@ -28,9 +30,21 @@ export default async function handler(req, res) {
 
   const { email, fullname, nickname, password, password_confirm, agree_terms, turnstile_token } = req.body;
 
-  // Validate fields
-  if (!email || !fullname || !password || !password_confirm || !agree_terms || !turnstile_token) {
-    res.status(400).json({ error: 'Missing required fields' });
+  // Validate fields (server-side)
+  if (!email || typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    res.status(400).json({ error: 'Invalid email address' });
+    return;
+  }
+  if (!fullname || typeof fullname !== 'string' || fullname.length < 2 || fullname.length > 100) {
+    res.status(400).json({ error: 'Full name must be 2-100 characters' });
+    return;
+  }
+  if (nickname && (typeof nickname !== 'string' || nickname.length > 50)) {
+    res.status(400).json({ error: 'Nickname must be up to 50 characters' });
+    return;
+  }
+  if (!password || typeof password !== 'string' || !password_confirm || typeof password_confirm !== 'string') {
+    res.status(400).json({ error: 'Missing password fields' });
     return;
   }
   if (password !== password_confirm) {
@@ -39,6 +53,14 @@ export default async function handler(req, res) {
   }
   if (!/^.{8,}$/.test(password) || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
     res.status(400).json({ error: 'Password does not meet requirements' });
+    return;
+  }
+  if (!agree_terms) {
+    res.status(400).json({ error: 'You must agree to the terms' });
+    return;
+  }
+  if (!turnstile_token || typeof turnstile_token !== 'string') {
+    res.status(400).json({ error: 'Missing captcha token' });
     return;
   }
 
@@ -65,40 +87,47 @@ export default async function handler(req, res) {
   }
 
   // Hash password
-  const password_hash = crypto.createHash('sha256').update(password).digest('hex');
-
-  // Insert member
-  const result = await db_write(
-    'INSERT INTO members (email, fullname, nickname, password_hash, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-    [email, fullname, nickname || null, password_hash, 'INACTIVE']
-  );
-  const member_id = result.insertId;
-
-  // Get IP address
+  const password_hash = bcrypt.hashSync(password, BCRYPT_SALT);
   const ip_address = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || req.socket?.remoteAddress || '';
-
-  // Log REGISTERED event
-  await db_write(
-    'INSERT INTO member_activity_log (member_id, activity_type, activity_time, activity_data, ip_address) VALUES (?, ?, NOW(), ?, ?)',
-    [member_id, 'REGISTERED', JSON.stringify({ email, fullname, nickname }), ip_address]
-  );
-
-  // Create activation token
   const token_value = crypto.randomBytes(32).toString('hex');
   const expires_at = new Date(Date.now() + TOKEN_TTL_HOURS * 3600 * 1000);
-  await db_write(
-    'INSERT INTO member_tokens (member_id, token_type, token_value, expires_at, created_at, is_used) VALUES (?, ?, ?, ?, NOW(), 0)',
-    [member_id, 'ACTIVATION', token_value, expires_at]
-  );
+  let member_id;
+  try {
+    // Manual transaction for correct member_id usage
+    const pool = get_pool('DBW');
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const memberRes = await conn.query('INSERT INTO members (email, fullname, nickname, password_hash, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())', [email, fullname, nickname || null, password_hash, 'INACTIVE']);
+      member_id = memberRes.insertId;
+      await conn.query('INSERT INTO member_activity_log (member_id, activity_type, activity_time, activity_data, ip_address) VALUES (?, ?, NOW(), ?, ?)', [member_id, 'REGISTERED', JSON.stringify({ email, fullname, nickname }), ip_address]);
+      await conn.query('INSERT INTO member_tokens (member_id, token_type, token_value, expires_at, created_at, is_used) VALUES (?, ?, ?, ?, NOW(), 0)', [member_id, 'ACTIVATION', token_value, expires_at]);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({ error: 'Registration failed, please try again.' });
+    return;
+  }
 
-  // Send activation email
-  const activation_link = `${APP_BASE_URL}/v/${token_value}`;
-  const html = get_activation_email({ fullname, activation_link });
-  await send_email({
-    to: email,
-    subject: 'Activate your Stamps.Gallery account',
-    html,
-  });
+  // Send activation email (outside transaction)
+  try {
+    const activation_link = `${APP_BASE_URL}/v/${token_value}`;
+    const html = get_activation_email({ fullname, activation_link });
+    await send_email({
+      to: email,
+      subject: 'Activate your Stamps.Gallery account',
+      html,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not send activation email. Please contact support.' });
+    return;
+  }
 
   res.status(200).json({ success: true });
 }

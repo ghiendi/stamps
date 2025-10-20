@@ -100,7 +100,12 @@ function RegisterForm() {
     return (
       <div style={{ maxWidth: 400, margin: '32px auto', textAlign: 'center' }}>
         <h2>Registration successful!</h2>
-        <p>Please check your email to activate your account.</p>
+        <p>
+          Please check your email to activate your account.<br />
+          <span style={{ color: '#888', fontSize: 14 }}>
+            Didn&apos;t receive the email? <a href="/member/resend-token">Resend activation email</a>
+          </span>
+        </p>
       </div>
     );
   }
