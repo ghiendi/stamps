@@ -1,4 +1,4 @@
-import { db_write, db_read, db_transaction, get_pool } from '@/lib/db';
+import { db_read, get_pool } from '@/lib/db';
 import rate_limit from '@/lib/rate_limit';
 import { send_email } from '@/lib/send_email';
 import { get_activation_email } from '@/email/activation_email';
@@ -9,7 +9,7 @@ const LIMIT = parseInt(process.env.RL_REGISTER_LIMIT || '5', 10);
 const WINDOW = parseInt(process.env.RL_REGISTER_WINDOW || '900', 10);
 const TOKEN_TTL_HOURS = parseInt(process.env.TOKEN_ACTIVATION_TTL_HOURS || '24', 10);
 const APP_BASE_URL = process.env.APP_BASE_URL;
-const BCRYPT_SALT = process.env.BCRYPT_SALT || '$2a$10$CwTycUXWue0Thq9StjUM0u'; // default salt, override in .env.development
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
 const apply_rate_limit = rate_limit({ limit: LIMIT, window: WINDOW });
 
@@ -28,7 +28,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { email, fullname, nickname, password, password_confirm, agree_terms, turnstile_token } = req.body;
+  let { email, fullname, nickname, password, password_confirm, agree_terms, turnstile_token } = req.body;
+
+  // Normalize email
+  if (typeof email === 'string') email = email.trim().toLowerCase();
 
   // Validate fields (server-side)
   if (!email || typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -87,9 +90,11 @@ export default async function handler(req, res) {
   }
 
   // Hash password
-  const password_hash = bcrypt.hashSync(password, BCRYPT_SALT);
+  const password_hash = bcrypt.hashSync(password, bcrypt.genSaltSync(BCRYPT_ROUNDS));
   const ip_address = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || req.socket?.remoteAddress || '';
-  const token_value = crypto.randomBytes(32).toString('hex');
+  // Generate raw token and store SHA-256 hash in DB
+  const token_raw = crypto.randomBytes(32).toString('hex');
+  const token_hash = crypto.createHash('sha256').update(token_raw).digest('hex');
   const expires_at = new Date(Date.now() + TOKEN_TTL_HOURS * 3600 * 1000);
   let member_id;
   try {
@@ -101,7 +106,7 @@ export default async function handler(req, res) {
       const memberRes = await conn.query('INSERT INTO members (email, fullname, nickname, password_hash, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())', [email, fullname, nickname || null, password_hash, 'INACTIVE']);
       member_id = memberRes.insertId;
       await conn.query('INSERT INTO member_activity_log (member_id, activity_type, activity_time, activity_data, ip_address) VALUES (?, ?, NOW(), ?, ?)', [member_id, 'REGISTERED', JSON.stringify({ email, fullname, nickname }), ip_address]);
-      await conn.query('INSERT INTO member_tokens (member_id, token_type, token_value, expires_at, created_at, is_used) VALUES (?, ?, ?, ?, NOW(), 0)', [member_id, 'ACTIVATION', token_value, expires_at]);
+      await conn.query('INSERT INTO member_tokens (member_id, token_type, token_value, expires_at, created_at, is_used) VALUES (?, ?, ?, ?, NOW(), 0)', [member_id, 'ACTIVATION', token_hash, expires_at]);
       await conn.commit();
     } catch (err) {
       await conn.rollback();
@@ -110,14 +115,20 @@ export default async function handler(req, res) {
       conn.release();
     }
   } catch (err) {
-    console.log(err)
+    // Handle duplicate email race condition
+    if (err && (err.code === 'ER_DUP_ENTRY' || err.errno === 1062)) {
+      res.status(400).json({ error: 'Email already registered' });
+      return;
+    }
+    console.error('Registration error:', err);
     res.status(500).json({ error: 'Registration failed, please try again.' });
     return;
   }
 
   // Send activation email (outside transaction)
   try {
-    const activation_link = `${APP_BASE_URL}/v/${token_value}`;
+    const baseUrl = APP_BASE_URL || `${(req.headers['x-forwarded-proto'] || 'https')}://${req.headers.host}`;
+    const activation_link = `${baseUrl}/v/${token_raw}`;
     const html = get_activation_email({ fullname, activation_link });
     await send_email({
       to: email,
@@ -125,6 +136,7 @@ export default async function handler(req, res) {
       html,
     });
   } catch (err) {
+    console.error('Activation email error:', err);
     res.status(500).json({ error: 'Could not send activation email. Please contact support.' });
     return;
   }
