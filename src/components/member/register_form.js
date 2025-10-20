@@ -113,49 +113,84 @@ function RegisterForm() {
   return (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
-      <Form
-        layout="vertical"
-        style={{ maxWidth: 400, margin: '32px auto', padding: 24, border: '1px solid #eee', borderRadius: 8 }}
-        onFinish={onFinish}
-        initialValues={{ agree_terms: false }}
-      >
-        <h2 style={{ marginBottom: 16 }}>Register</h2>
-        <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}>
-          <Input autoComplete="email" />
-        </Form.Item>
-        <Form.Item label="Full name" name="fullname" rules={[{ required: true, message: 'Please enter your full name' }]}>
-          <Input autoComplete="name" />
-        </Form.Item>
-        <Form.Item label="Nickname (optional)" name="nickname">
-          <Input autoComplete="nickname" />
-        </Form.Item>
-        <Form.Item label="Password" name="password" rules={[{ required: true, message: 'Please enter your password' }, { min: 8, message: 'At least 8 characters' }, { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, message: 'Include uppercase, lowercase, and number' }]}>
-          <Input.Password autoComplete="new-password" />
-        </Form.Item>
-        <Form.Item label="Confirm password" name="password_confirm" dependencies={["password"]} rules={[{ required: true, message: 'Please confirm your password' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) { return Promise.resolve(); } return Promise.reject(new Error('Passwords do not match')); } })]}>
-          <Input.Password autoComplete="new-password" />
-        </Form.Item>
-        <Form.Item name="agree_terms" valuePropName="checked" rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('You must agree to the terms')) }]}>
-          <Checkbox>I agree to the terms and conditions</Checkbox>
-        </Form.Item>
-        <div style={{ marginBottom: 16 }}>
-          <div
-            className="cf-turnstile"
-            data-sitekey={TURNSTILE_SITE_KEY}
-            data-callback="onTurnstileCallback"
-            data-theme="light"
-            style={{ margin: '0 auto' }}
-          />
-        </div>
-        <Form.Item>
-          <Button type="primary" htmlType="submit" block loading={loading}>
-            Register
-          </Button>
-        </Form.Item>
-        <div style={{ marginTop: 16, fontSize: 14 }}>
-          Already have an account? <a href="/member/login">Login</a>
-        </div>
-      </Form>
+      <div style={{ position: 'relative' }}>
+        {loading && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(255,255,255,0.6)',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 8
+          }}>
+            <span style={{ fontSize: 18, color: '#888' }}>Processing...</span>
+          </div>
+        )}
+        <Form
+          layout="vertical"
+          style={{ maxWidth: 400, margin: '32px auto', padding: 24, border: '1px solid #eee', borderRadius: 8 }}
+          onFinish={onFinish}
+          initialValues={{ agree_terms: false }}
+          disabled={loading}
+        >
+          <h2 style={{ marginBottom: 16 }}>Register for Free</h2>
+          <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}> 
+            <Input autoComplete="email" />
+          </Form.Item>
+          <Form.Item label="Full name" name="fullname" rules={[{ required: true, message: 'Please enter your full name' }]}> 
+            <Input autoComplete="name" />
+          </Form.Item>
+          <Form.Item label="Nickname (optional)" name="nickname"> 
+            <Input autoComplete="nickname" />
+          </Form.Item>
+          <Form.Item 
+            label="Password" 
+            name="password" 
+            rules={[
+              { required: true, message: 'Please enter your password' },
+              { min: 8, message: 'At least 8 characters' },
+              { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, message: 'Include uppercase, lowercase, and number' }
+            ]}
+            extra={<span style={{ color: '#888' }}>Password must be at least 8 characters, include uppercase, lowercase, and a number.</span>}
+          >
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item label="Confirm password" name="password_confirm" dependencies={["password"]} rules={[{ required: true, message: 'Please confirm your password' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) { return Promise.resolve(); } return Promise.reject(new Error('Passwords do not match')); } })]}>
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item 
+            name="agree_terms" 
+            valuePropName="checked" 
+            rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('You must agree to the terms')) }]}
+          >
+            <Checkbox>
+              I agree to the <a href="/docs/terms-of-use" target="_blank" rel="noopener noreferrer">terms of use</a> and <a href="/docs/privacy-policy" target="_blank" rel="noopener noreferrer">privacy policy</a>
+            </Checkbox>
+          </Form.Item>
+          <div style={{ marginBottom: 16 }}>
+            <div
+              className="cf-turnstile"
+              data-sitekey={TURNSTILE_SITE_KEY}
+              data-callback="onTurnstileCallback"
+              data-theme="light"
+              style={{ margin: '0 auto' }}
+            />
+          </div>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block loading={loading}>
+              Register
+            </Button>
+          </Form.Item>
+          <div style={{ marginTop: 16, fontSize: 14 }}>
+            Already have an account? <a href="/member/login">Login</a>
+          </div>
+        </Form>
+      </div>
       <Script id="turnstile-callback" strategy="afterInteractive">
         {`
           window.onTurnstileCallback = function(token) {

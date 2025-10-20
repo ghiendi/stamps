@@ -11,7 +11,7 @@
  Target Server Version : 120101 (12.1.1-MariaDB-log)
  File Encoding         : 65001
 
- Date: 20/10/2025 05:54:37
+ Date: 20/10/2025 10:00:36
 */
 
 SET NAMES utf8mb4;
@@ -208,7 +208,7 @@ CREATE TABLE `issuing_authority`  (
 DROP TABLE IF EXISTS `member_activity_log`;
 CREATE TABLE `member_activity_log`  (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID của bản ghi hoạt động',
-  `member_id` int(10) UNSIGNED NOT NULL COMMENT 'FK tới members(id) - Người dùng thực hiện hành động',
+  `member_id` int(10) UNSIGNED NULL DEFAULT NULL COMMENT 'FK tới members(id) - Người dùng thực hiện hành động',
   `activity_type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Loại sự kiện',
   `activity_time` datetime NULL DEFAULT NULL COMMENT 'Thời gian xảy ra sự kiện',
   `activity_data` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Chi tiết sự kiện (ví dụ: các field được cập nhật)',
@@ -216,7 +216,7 @@ CREATE TABLE `member_activity_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_member_id_type`(`member_id` ASC, `activity_type` ASC) USING BTREE,
   CONSTRAINT `1` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 70 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Lịch sử hoạt động chính của người dùng (Đăng ký, kích hoạt, cập nhật)' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 89 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Lịch sử hoạt động chính của người dùng (Đăng ký, kích hoạt, cập nhật)' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for member_identities
@@ -291,7 +291,7 @@ CREATE TABLE `member_tokens`  (
   INDEX `idx_token_value`(`token_value` ASC) USING BTREE,
   INDEX `member_id`(`member_id` ASC) USING BTREE,
   CONSTRAINT `1` FOREIGN KEY (`member_id`) REFERENCES `members` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Quản lý mã thông báo kích hoạt/xác nhận email' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 36 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Quản lý mã thông báo kích hoạt/xác nhận email' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for members
@@ -334,7 +334,7 @@ CREATE TABLE `members`  (
   CONSTRAINT `fk_data_rank` FOREIGN KEY (`data_rank_id`) REFERENCES `rank_titles` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_image_rank` FOREIGN KEY (`image_rank_id`) REFERENCES `rank_titles` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_translator_rank` FOREIGN KEY (`translator_rank_id`) REFERENCES `rank_titles` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 47 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Bảng lưu trữ thông tin thành viên' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 60 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Bảng lưu trữ thông tin thành viên' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for philatelic_item
